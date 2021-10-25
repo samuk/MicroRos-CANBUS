@@ -1,43 +1,53 @@
-// demo: CAN-BUS Shield, send data
-// loovee@seeed.cc
+/*
+ * ESP32 CAN-Bus demo
+ * 
+ * www.skpang.co.uk
+ * 
+ * v1.0 March 2020
+ * 
+ * For use with ESP-32 CAN-Bus board
+ * http://skpang.co.uk/catalog/esp32-canbus-board-p-1586.html
+ * 
+ */
+#include <ESP32CAN.h>
+#include <CAN_config.h>
+#define ON  LOW
+#define OFF HIGH
 
-#include <mcp_can.h>
-#include <SPI.h>
+int LED_R = 2;
+int LED_B = 4;
+int LED_G = 15;
 
-/*SAMD core*/
-#ifdef ARDUINO_SAMD_VARIANT_COMPLIANCE
-  #define SERIAL SerialUSB
-#else
-  #define SERIAL Serial
-#endif
 
-// Define Joystick connection pins 
-#define UP     A1
-#define DOWN   A3
-#define LEFT   A2
-#define RIGHT  A5
-#define CLICK  A4
+CAN_device_t CAN_cfg;
+int i = 0;
+long d = 0;
+CAN_frame_t rx_frame;
+unsigned long startMillis;  
+ 
+hw_timer_t * timer = NULL;
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
+
+void IRAM_ATTR onTimer() {
+  
+  digitalWrite(LED_B, ON);
+  rx_frame.FIR.B.FF = CAN_frame_std;
+  rx_frame.MsgID = 0x101;
+  rx_frame.FIR.B.DLC = 8;
+  rx_frame.data.u8[0] = 'h';
+  rx_frame.data.u8[1] = 'e';
+  rx_frame.data.u8[2] = 'l';
+  rx_frame.data.u8[3] = 'l';
+  rx_frame.data.u8[4] = 'o';
+  rx_frame.data.u8[5] = 'c';
+  rx_frame.data.u8[6] = 'a';
+  rx_frame.data.u8[7] = i++;
     
-//Define LED pins
-#define LED2 8
-#define LED3 7
-
-#define StepValue 140
-
-// the cs pin of the version after v1.1 is default to D9
-// v0.9b and v1.0 is default D10
-const int SPI_CS_PIN = 10;
-
-MCP_CAN CAN(SPI_CS_PIN);                                    // Set CS pin
-
-long GenPos = 0;
-long GenVel = 200;
-
-// variable to receive the message
-unsigned char len = 0;
-// variable to send the message
-unsigned char buf[8];
-
+  ESP32Can.CANWriteFrame(&rx_frame);
+  startMillis = millis();
+ 
+  
+}
 void setup()
 {
     SERIAL.begin(115200);
